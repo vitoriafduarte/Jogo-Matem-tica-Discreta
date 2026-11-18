@@ -20,10 +20,3 @@
 * **Condições de Vitória e Derrota:** O jogador possui **5 vidas** e um cronômetro regressivo de **15 minutos**. Concluir os 12 acertos leva à tela de Vitória; zerar as vidas ou o tempo leva à tela de Derrota.
 * **Efeitos Sonoros Sintetizados (Web Audio API):** Sons de acerto, erro e avanço de fase gerados nativamente pelo navegador sem depender de arquivos externos pesados.
 * **Feedback Matemático Imediato:** Após responder cada questão, o jogo exibe a resolução matemática passo a passo.
-
-## 4. Como Publicar no GitHub Pages (Geração do Link do Jogo)
-1. Crie um novo repositório público no GitHub (ex.: `escape-room-combinatoria`).
-2. Faça o upload dos arquivos deste pacote (`index.html`, `questions.json`, `README.md`).
-3. No repositório do GitHub, acesse **Settings** > **Pages**.
-4. Em **Branch**, selecione `main` (ou `master`) e clique em **Save**.
-5. Em 1 minuto, o link oficial do jogo estará ativo em `https://seu-usuario.github.io/escape-room-combinatoria/`.
