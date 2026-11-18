@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operação Enigma: A Fuga do Bunker — Escape Room de Análise Combinatória</title>
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --bg-card: #151c2c;
+            --bg-panel: #1e293b;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background: radial-gradient(circle at top, #1e293b 0%, #0b0f19 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--bg-card);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 25px rgba(6, 182, 212, 0.15);
+            overflow: hidden;
+            position: relative;
+        }
+        .top-bar {
+            background: #090d16;
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            font-size: 0.95rem;
+        }
+        .hud-stats {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+        .stat-badge {
+            background: var(--bg-panel);
+            padding: 6px 14px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-audio {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-audio:hover {
+            background: rgba(6, 182, 212, 0.15);
+        }
+        .screen {
+            display: none;
+            padding: 36px 32px;
+            animation: fadeIn 0.4s ease;
+        }
+        .screen.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hero-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        .hero-subtitle {
+            color: var(--text-muted);
+            text-align: center;
+            max-width: 680px;
+            margin: 0 auto 28px;
+            line-height: 1.6;
+            font-size: 1.05rem;
+        }
+        .phases-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .phase-card {
+            background: var(--bg-panel);
+            padding: 14px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-cyan);
+            font-size: 0.85rem;
+        }
+        .phase-card strong {
+            display: block;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+        .phase-card span {
+            color: var(--text-muted);
+        }
+        .btn-primary {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(6, 182, 212, 0.45);
+        }
+        .center-actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .room-banner {
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
+            border: 1px solid rgba(6, 182, 212, 0.35);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .room-info h2 {
+            font-size: 1.3rem;
+            color: var(--accent-cyan);
+            margin-bottom: 4px;
+        }
+        .room-info p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .progress-Track {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .phase-step {
+            flex: 1;
+            height: 8px;
+            background: #273549;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .phase-step.done {
+            background: var(--accent-green);
+        }
+        .phase-step.current {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+        .question-box {
+            background: var(--bg-panel);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .topic-pill {
+            display: inline-block;
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .question-text {
+            font-size: 1.15rem;
+            line-height: 1.6;
+            margin-bottom: 22px;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+        @media (max-width: 600px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .option-btn {
+            background: #0f172a;
+            border: 2px solid #334155;
+            color: var(--text-main);
+            padding: 16px 20px;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.1);
+        }
+        .option-btn.correct {
+            border-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+        .option-btn.wrong {
+            border-color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+        .feedback-box {
+            display: none;
+            margin-top: 18px;
+            padding: 16px 20px;
+            border-radius: 10px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        .feedback-box.show {
+            display: block;
+        }
+        .feedback-box.ok {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid var(--accent-green);
+            color: #d1fae5;
+        }
+        .feedback-box.err {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid var(--accent-red);
+            color: #fee2e2;
+        }
+        .next-btn {
+            margin-top: 14px;
+            background: var(--accent-cyan);
+            color: #090d16;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="top-bar">
+        <div class="brand">🔒 Operação Enigma: Escape Room</div>
+        <div class="hud-stats" id="hud" style="display: none;">
+            <div class="stat-badge" title="Tempo Restante">⏱️ <span id="timer-display">15:00</span></div>
+            <div class="stat-badge" title="Vidas / Tentativas Restantes">❤️ <span id="lives-display">5</span>/5</div>
+            <div class="stat-badge" title="Total de Acertos Acumulados">🎯 <span id="total-hits-display">0</span>/12</div>
+        </div>
+        <button class="btn-audio" id="audio-toggle" onclick="toggleAudio()">🔊 Som: ON</button>
+    </div>
+
+    <!-- TELA INICIAL -->
+    <div id="screen-start" class="screen active">
+        <h1 class="hero-title">OPERAÇÃO ENIGMA: A FUGA DO BUNKER</h1>
+        <p class="hero-subtitle">
+            O sistema de Inteligência Artificial do Bunker Subterrâneo entrou em modo de confinamento total.
+            Para destravar as <strong>5 portas de segurança</strong> e escapar antes que o oxigênio acabe, você precisa resolver <strong>12 desafios matemáticos de Análise Combinatória</strong> com dificuldade progressiva!
+        </p>
+
+        <div class="phases-preview">
+            <div class="phase-card">
+                <strong>Fase 1: Porta Blindada</strong>
+                <span>Nível Fácil • 1 acerto<br>PFC Direto</span>
+            </div>
+            <div class="phase-card">
+                <strong>Fase 2: Arquivo Cripto</strong>
+                <span>Nível Básico • 2 acertos<br>Permutação e Arranjo</span>
+            </div>
+            <div class="phase-card">
+                <strong>Fase 3: Lab Bioquímico</strong>
+                <span>Intermediário • 2 acertos<br>Combinação e Repetição</span>
+            </div>
+            <div class="phase-card">
+                <strong>Fase 4: Sala Servidores</strong>
+                <span>Avançado • 3 acertos<br>Restrições (Juntos/Separados)</span>
+            </div>
+            <div class="phase-card">
+                <strong>Fase 5: Reator Quântico</strong>
+                <span>Difícil • 4 acertos<br>Casos e Comb. Completa</span>
+            </div>
+        </div>
+
+        <div class="center-actions">
+            <button class="btn-primary" onclick="startGame()">🚀 INICIAR FUGA AGORA</button>
+        </div>
+    </div>
+
+    <!-- TELA DE JOGO -->
+    <div id="screen-game" class="screen">
+        <div class="progress-Track" id="phase-bars">
+            <div class="phase-step" id="bar-1"></div>
+            <div class="phase-step" id="bar-2"></div>
+            <div class="phase-step" id="bar-3"></div>
+            <div class="phase-step" id="bar-4"></div>
+            <div class="phase-step" id="bar-5"></div>
+        </div>
+
+        <div class="room-banner">
+            <div class="room-info">
+                <h2 id="room-title">Fase 1 — Porta de Entrada Blindada</h2>
+                <p id="room-desc">Nível Fácil • Destrave o painel primário usando o Princípio Fundamental da Contagem.</p>
+            </div>
+            <div class="stat-badge" style="font-size: 1rem; border-color: var(--accent-cyan);">
+                🔓 Acertos na Fase: <span id="phase-hits">0</span> / <span id="phase-req">1</span>
+            </div>
+        </div>
+
+        <div class="question-box">
+            <span class="topic-pill" id="q-topic">Princípio Fundamental da Contagem</span>
+            <div class="question-text" id="q-text">Carregando desafio...</div>
+            <div class="options-grid" id="options-container"></div>
+
+            <div class="feedback-box" id="feedback-box">
+                <strong id="feedback-title"></strong>
+                <p id="feedback-res" style="margin-top: 6px;"></p>
+                <button class="next-btn" id="next-btn" onclick="nextStep()">Continuar ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE VITÓRIA -->
+    <div id="screen-win" class="screen">
+        <h1 class="hero-title">🎉 FUGA CONCLUÍDA COM SUCESSO!</h1>
+        <p class="hero-subtitle">
+            Parabéns! Você dominou todos os desafios de Análise Combinatória, desativou as 5 travas do Bunker Subterrâneo e escapou a tempo!
+        </p>
+        <div class="question-box" style="text-align: center;">
+            <p style="font-size: 1.15rem; margin-bottom: 10px;">✅ Acertos Totais: <strong>12 / 12</strong></p>
+            <p style="font-size: 1.15rem; margin-bottom: 10px;">⏱️ Tempo Restante: <strong id="win-time">00:00</strong></p>
+            <p style="font-size: 1.15rem;">❤️ Vidas Restantes: <strong id="win-lives">5</strong></p>
+        </div>
+        <div class="center-actions">
+            <button class="btn-primary" onclick="startGame()">🔄 JOGAR NOVAMENTE</button>
+        </div>
+    </div>
+
+    <!-- TELA DE DERROTA -->
+    <div id="screen-lose" class="screen">
+        <h1 class="hero-title" style="background: linear-gradient(90deg, #ef4444, #f59e0b); -webkit-background-clip: text;">🚨 ALARME ACIONADO — FIM DE JOGO</h1>
+        <p class="hero-subtitle" id="lose-reason">
+            Você atingiu o limite máximo de erros permitidos pelo sistema de segurança do Bunker.
+        </p>
+        <div class="question-box" style="text-align: center;">
+            <p style="font-size: 1.15rem; margin-bottom: 10px;">🔓 Fase Alcançada: <strong id="lose-phase">1</strong> / 5</p>
+            <p style="font-size: 1.15rem;">🎯 Acertos Acumulados: <strong id="lose-hits">0</strong> / 12</p>
+        </div>
+        <div class="center-actions">
+            <button class="btn-primary" onclick="startGame()">🔄 TENTAR NOVA FUGA</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const QUESTIONS_DB = [
+  {
+    "id": 101,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "O painel da porta de entrada possui 3 seletores rotativos independentes. O primeiro tem 4 símbolos, o segundo tem 5 dígitos e o terceiro tem 3 cores. Quantas combinações diferentes existem para destravar a porta?",
+    "options": [
+      "12",
+      "45",
+      "60",
+      "120"
+    ],
+    "answer": "60",
+    "resolution": "Pelo Princípio Fundamental da Contagem (PFC), multiplicamos as opções de cada etapa independente: 4 × 5 × 3 = 60 combinações."
+  },
+  {
+    "id": 102,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "Para ligar a energia da Sala 1, você precisa conectar 1 cabo de força (dentre 6 disponíveis), 1 fusível (dentre 4 disponíveis) e 1 chave seletora (dentre 2 disponíveis). De quantos modos distintos essa conexão pode ser feita?",
+    "options": [
+      "12",
+      "24",
+      "48",
+      "36"
+    ],
+    "answer": "48",
+    "resolution": "Pelo PFC, o total de configurações é o produto das escolhas: 6 × 4 × 2 = 48 modos."
+  },
+  {
+    "id": 103,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "Uma fechadura eletrônica exige uma senha de 4 dígitos onde cada dígito só pode ser um número ímpar (1, 3, 5, 7, 9), podendo repetir dígitos. Quantas senhas possíveis existem?",
+    "options": [
+      "625",
+      "120",
+      "500",
+      "256"
+    ],
+    "answer": "625",
+    "resolution": "Existem 5 algarismos ímpares. Como há repetição e são 4 posições: 5 × 5 × 5 × 5 = 5^4 = 625 senhas."
+  },
+  {
+    "id": 104,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "No painel de ventilação há 5 interruptores do tipo Liga/Desliga. De quantas maneiras diferentes os 5 interruptores podem ser posicionados simultaneamente?",
+    "options": [
+      "10",
+      "25",
+      "32",
+      "64"
+    ],
+    "answer": "32",
+    "resolution": "Cada um dos 5 interruptores possui 2 estados possíveis (Ligado ou Desligado). Pelo PFC: 2 × 2 × 2 × 2 × 2 = 2^5 = 32 maneiras."
+  },
+  {
+    "id": 105,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "O corredor principal se divide em 4 portas para o Setor A. Do Setor A, há 6 túneis para o Setor B, e do Setor B, há 3 escadas para o laboratório. Quantas rotas completas distintas levam até o laboratório?",
+    "options": [
+      "13",
+      "24",
+      "72",
+      "54"
+    ],
+    "answer": "72",
+    "resolution": "Multiplicando as opções de cada trecho da rota pelo PFC: 4 × 6 × 3 = 72 rotas."
+  },
+  {
+    "id": 106,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "Um código de segurança é formado por 2 vogais (dentre A, E, I, O, U) seguidas de 2 algarismos pares (dentre 0, 2, 4, 6, 8), podendo haver repetição. Quantos códigos podem ser formados?",
+    "options": [
+      "100",
+      "400",
+      "625",
+      "200"
+    ],
+    "answer": "625",
+    "resolution": "Temos 5 opções para cada uma das 2 vogais e 5 opções para cada um dos 2 dígitos pares: 5 × 5 × 5 × 5 = 625 códigos."
+  },
+  {
+    "id": 107,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "O terminal de acesso pede uma credencial composta por 1 letra (de um alfabeto de 26 letras) seguida por 2 algarismos quaisquer (de 0 a 9), com repetição permitida. Quantas credenciais existem?",
+    "options": [
+      "260",
+      "2600",
+      "2340",
+      "520"
+    ],
+    "answer": "2600",
+    "resolution": "São 26 opções para a letra, 10 para o primeiro dígito e 10 para o segundo dígito: 26 × 10 × 10 = 2.600 credenciais."
+  },
+  {
+    "id": 108,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "Uma válvula de pressão possui 3 anéis giratórios. O anel externo tem 8 posições, o intermediário tem 5 posições e o interno tem 4 posições. Quantas configurações existem no total?",
+    "options": [
+      "17",
+      "120",
+      "160",
+      "200"
+    ],
+    "answer": "160",
+    "resolution": "Pelo PFC, multiplicamos as posições de cada anel: 8 × 5 × 4 = 160 configurações."
+  },
+  {
+    "id": 109,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "Para atravessar a sala de lasers, um drone pode escolher entre 3 alturas, 4 velocidades e 5 frequências de escudo. De quantas formas o drone pode ser configurado?",
+    "options": [
+      "12",
+      "60",
+      "45",
+      "75"
+    ],
+    "answer": "60",
+    "resolution": "Multiplicando as escolhas independentes: 3 × 4 × 5 = 60 formas."
+  },
+  {
+    "id": 110,
+    "phase": 1,
+    "level": "Fácil",
+    "topic": "Princípio Fundamental da Contagem",
+    "question": "Um cofre exige uma sequência de 3 dígitos onde o primeiro não pode ser zero (1 a 9) e os outros dois podem ser qualquer dígito de 0 a 9, admitindo repetição. Quantas sequências existem?",
+    "options": [
+      "729",
+      "900",
+      "1000",
+      "810"
+    ],
+    "answer": "900",
+    "resolution": "Temos 9 opções para o 1º dígito, 10 para o 2º e 10 para o 3º: 9 × 10 × 10 = 900 sequências."
+  },
+  {
+    "id": 201,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Permutação Simples",
+    "question": "Na estante do laboratório, há 6 cilindros de gás de cores diferentes que devem ser enfileirados em 6 encaixes. De quantas maneiras distintas podemos ordenar todos esses cilindros?",
+    "options": [
+      "120",
+      "360",
+      "720",
+      "5040"
+    ],
+    "answer": "720",
+    "resolution": "Trata-se de uma permutação simples de 6 elementos: P_6 = 6! = 6 × 5 × 4 × 3 × 2 × 1 = 720 maneiras."
+  },
+  {
+    "id": 202,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Arranjo Simples",
+    "question": "O computador central exige que você insira 3 cartões de memória em 3 entradas numeradas (Entrada 1, 2 e 3), escolhendo dentre 7 cartões diferentes disponíveis. De quantos modos isso pode ser feito?",
+    "options": [
+      "35",
+      "210",
+      "343",
+      "140"
+    ],
+    "answer": "210",
+    "resolution": "Como a ordem das entradas importa, temos um Arranjo Simples A(7,3) = 7 × 6 × 5 = 210 modos."
+  },
+  {
+    "id": 203,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Permutação Simples",
+    "question": "Quantos anagramas (embaralhamentos de letras) podem ser formados com a palavra-chave SENHA (5 letras distintas)?",
+    "options": [
+      "25",
+      "60",
+      "120",
+      "240"
+    ],
+    "answer": "120",
+    "resolution": "A palavra SENHA tem 5 letras distintas. O total de anagramas é P_5 = 5! = 5 × 4 × 3 × 2 × 1 = 120."
+  },
+  {
+    "id": 204,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Arranjo Simples",
+    "question": "De um painel com 10 botões coloridos distintos, você deve apertar uma sequência de 3 botões diferentes, um após o outro, para abrir o cofre. Quantas sequências existem?",
+    "options": [
+      "120",
+      "720",
+      "1000",
+      "360"
+    ],
+    "answer": "720",
+    "resolution": "A ordem dos botões importa e não há repetição: A(10,3) = 10 × 9 × 8 = 720 sequências."
+  },
+  {
+    "id": 205,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Permutação Simples",
+    "question": "Há 7 cabos ópticos numerados de 1 a 7 para conectar em 7 portas. Se o cabo 1 já está fixado obrigatoriamente na primeira porta, de quantos modos os outros 6 cabos podem ser conectados nas 6 portas restantes?",
+    "options": [
+      "120",
+      "720",
+      "5040",
+      "360"
+    ],
+    "answer": "720",
+    "resolution": "Com o primeiro cabo fixo, permutamos os 6 cabos restantes nas 6 portas: P_6 = 6! = 720 modos."
+  },
+  {
+    "id": 206,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Arranjo Simples",
+    "question": "Um protocolo de segurança sorteia 1 Líder, 1 Navegador e 1 Engenheiro entre 8 tripulantes do bunker. Sabendo que ninguém acumula funções, de quantos modos essa equipe diretiva pode ser formada?",
+    "options": [
+      "56",
+      "336",
+      "512",
+      "168"
+    ],
+    "answer": "336",
+    "resolution": "Os cargos são distintos (a ordem importa): A(8,3) = 8 × 7 × 6 = 336 modos."
+  },
+  {
+    "id": 207,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Arranjo Simples",
+    "question": "Quantas senhas de 4 letras distintas podem ser formadas utilizando apenas as 6 primeiras letras do alfabeto (A, B, C, D, E, F)?",
+    "options": [
+      "15",
+      "120",
+      "360",
+      "720"
+    ],
+    "answer": "360",
+    "resolution": "Escolhemos e ordenamos 4 letras distintas dentre 6: A(6,4) = 6 × 5 × 4 × 3 = 360 senhas."
+  },
+  {
+    "id": 208,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Permutação Simples",
+    "question": "Entre os anagramas da palavra COFRE, quantos começam obrigatoriamente com uma vogal (O ou E)?",
+    "options": [
+      "24",
+      "48",
+      "60",
+      "120"
+    ],
+    "answer": "48",
+    "resolution": "Temos 2 opções de vogal para a 1ª posição (O ou E) e permutamos as 4 letras restantes: 2 × 4! = 2 × 24 = 48 anagramas."
+  },
+  {
+    "id": 209,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Arranjo Simples",
+    "question": "Nove chaves diferentes estão penduradas no quadro. Você precisa escolher 2 delas para colocar na fechadura superior e na fechadura inferior da porta. De quantas formas isso pode ser testado?",
+    "options": [
+      "36",
+      "72",
+      "81",
+      "18"
+    ],
+    "answer": "72",
+    "resolution": "As fechaduras são distintas: A(9,2) = 9 × 8 = 72 formas."
+  },
+  {
+    "id": 210,
+    "phase": 2,
+    "level": "Básico",
+    "topic": "Permutação Simples",
+    "question": "Quatro cientistas e o robô assistente vão atravessar uma ponte estreita em fila indiana. Se o robô deve ir obrigatoriamente na frente (1º da fila), de quantos modos a fila pode ser formada?",
+    "options": [
+      "12",
+      "24",
+      "120",
+      "48"
+    ],
+    "answer": "24",
+    "resolution": "Com o robô fixo na 1ª posição, permutamos os 4 cientistas nas posições seguintes: P_4 = 4! = 24 modos."
+  },
+  {
+    "id": 301,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Combinação Simples",
+    "question": "Na bancada há 8 reagentes químicos diferentes. Para criar o neutralizador, você deve misturar simultaneamente 3 desses reagentes num único frasco (a ordem da mistura não altera o composto). Quantas misturas diferentes podem ser feitas?",
+    "options": [
+      "56",
+      "336",
+      "24",
+      "112"
+    ],
+    "answer": "56",
+    "resolution": "Como a ordem não importa, usamos Combinação Simples: C(8,3) = (8 × 7 × 6) / (3 × 2 × 1) = 56 misturas."
+  },
+  {
+    "id": 302,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Permutação com Repetição",
+    "question": "O terminal pede o número de anagramas distintos que podem ser formados com todas as letras da palavra RADAR.",
+    "options": [
+      "120",
+      "60",
+      "30",
+      "20"
+    ],
+    "answer": "30",
+    "resolution": "RADAR tem 5 letras, com repetição de 2 'R' e 2 'A'. P_5^(2,2) = 5! / (2! × 2!) = 120 / 4 = 30 anagramas."
+  },
+  {
+    "id": 303,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Combinação Simples",
+    "question": "Para abrir a escotilha, é necessário acionar simultaneamente 4 alavancas dentre as 10 alavancas idênticas do painel. De quantas maneiras podemos escolher as 4 alavancas?",
+    "options": [
+      "210",
+      "5040",
+      "120",
+      "420"
+    ],
+    "answer": "210",
+    "resolution": "A ordem de escolha das alavancas acionadas juntas não importa: C(10,4) = (10 × 9 × 8 × 7) / (4 × 3 × 2 × 1) = 210 maneiras."
+  },
+  {
+    "id": 304,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Permutação com Repetição",
+    "question": "Um código binário de emergência tem 7 dígitos, sendo composto exatamente por 4 dígitos '1' e 3 dígitos '0'. Quantos códigos diferentes podem ser gerados?",
+    "options": [
+      "35",
+      "70",
+      "128",
+      "42"
+    ],
+    "answer": "35",
+    "resolution": "Permutação com repetição de 7 elementos (4 iguais a '1' e 3 iguais a '0'): P_7^(4,3) = 7! / (4! × 3!) = (7 × 6 × 5) / 6 = 35 códigos."
+  },
+  {
+    "id": 305,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Combinação Simples",
+    "question": "Entre 6 engenheiros e 4 médicos presos na base, deve-se formar uma comissão de resgate com 3 engenheiros e 2 médicos. De quantos modos essa comissão pode ser escolhida?",
+    "options": [
+      "26",
+      "60",
+      "120",
+      "240"
+    ],
+    "answer": "120",
+    "resolution": "Escolhemos 3 de 6 engenheiros E 2 de 4 médicos: C(6,3) × C(4,2) = 20 × 6 = 120 modos."
+  },
+  {
+    "id": 306,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Permutação com Repetição",
+    "question": "Um robô de inspeção precisa ir do canto (0,0) ao canto (4,3) de uma grade retangular dando apenas passos para o Leste (L) e para o Norte (N). Como ele precisa dar 4 passos L e 3 passos N, quantos caminhos mínimos existem?",
+    "options": [
+      "12",
+      "24",
+      "35",
+      "70"
+    ],
+    "answer": "35",
+    "resolution": "Qualquer caminho corresponde a uma sequência de 4 letras L e 3 letras N: P_7^(4,3) = 7! / (4! × 3!) = 35 caminhos."
+  },
+  {
+    "id": 307,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Permutação com Repetição",
+    "question": "Quantos anagramas distintos possui a palavra ALARME?",
+    "options": [
+      "720",
+      "360",
+      "180",
+      "120"
+    ],
+    "answer": "360",
+    "resolution": "ALARME possui 6 letras, sendo a letra 'A' repetida 2 vezes: P_6^2 = 6! / 2! = 720 / 2 = 360 anagramas."
+  },
+  {
+    "id": 308,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Combinação Simples",
+    "question": "Nove pontos estão marcados num círculo de contenção magnética. Quantos triângulos diferentes podem ser formados tendo vértices nesses 9 pontos?",
+    "options": [
+      "27",
+      "84",
+      "504",
+      "126"
+    ],
+    "answer": "84",
+    "resolution": "Como os pontos estão numa circunferência, não há 3 colineares. Basta escolher 3 pontos dentre 9: C(9,3) = (9 × 8 × 7) / 6 = 84 triângulos."
+  },
+  {
+    "id": 309,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Combinação Simples",
+    "question": "Em uma caixa há 7 baterias boas e 3 baterias descarregadas. De quantos modos podemos escolher 4 baterias de forma que exatamente 3 sejam boas e 1 seja descarregada?",
+    "options": [
+      "35",
+      "105",
+      "210",
+      "70"
+    ],
+    "answer": "105",
+    "resolution": "Escolhemos 3 das 7 boas E 1 das 3 descarregadas: C(7,3) × C(3,1) = 35 × 3 = 105 modos."
+  },
+  {
+    "id": 310,
+    "phase": 3,
+    "level": "Intermediário",
+    "topic": "Permutação com Repetição",
+    "question": "Quantos números de 6 algarismos podem ser formados permutando os dígitos do número 223335?",
+    "options": [
+      "60",
+      "120",
+      "180",
+      "360"
+    ],
+    "answer": "60",
+    "resolution": "Temos 6 dígitos ao todo, com dois '2', três '3' e um '5': P_6^(2,3) = 6! / (2! × 3!) = 720 / (2 × 6) = 60 números."
+  },
+  {
+    "id": 401,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Permutação com Restrição (Elementos Separados)",
+    "question": "De quantos modos é possível colocar 8 especialistas em fila para o scanner biométrico de modo que dois deles, Vera e Paulo, NÃO fiquem juntos?",
+    "options": [
+      "10080",
+      "30240",
+      "40320",
+      "20160"
+    ],
+    "answer": "30240",
+    "resolution": "Total sem restrição: 8! = 40.320. Casos em que Vera e Paulo ficam juntos (bloco VP): 7! × 2! = 5.040 × 2 = 10.080. Logo, separados: 40.320 - 10.080 = 30.240 modos."
+  },
+  {
+    "id": 402,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Permutação com Restrição (Juntos e Separados)",
+    "question": "De quantos modos é possível colocar 8 agentes em fila de modo que Helena e Pedro permaneçam JUNTOS, mas Vera e Paulo NÃO fiquem juntos?",
+    "options": [
+      "7200",
+      "10080",
+      "2880",
+      "5760"
+    ],
+    "answer": "7200",
+    "resolution": "Com Helena e Pedro juntos (bloco HP), temos 7 elementos: 7! × 2! = 10.080. Subtraímos os casos em que HP estão juntos E VP também estão juntos (6 elementos): 6! × 2! × 2! = 720 × 4 = 2.880. Total: 10.080 - 2.880 = 7.200 modos."
+  },
+  {
+    "id": 403,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Emparelhamento e Disposição com Restrição",
+    "question": "De quantos modos 5 técnicos e 5 técnicas podem se sentar em 5 cabines de 2 lugares, se em cada cabine deve haver exatamente um técnico e uma técnica?",
+    "options": [
+      "14400",
+      "230400",
+      "460800",
+      "120000"
+    ],
+    "answer": "460800",
+    "resolution": "Escolhemos os técnicos para as 5 cabines (5! = 120), as técnicas para as 5 cabines (5! = 120) e permutamos os 2 lugares dentro de cada uma das 5 cabines (2^5 = 32): 120 × 120 × 32 = 460.800 modos."
+  },
+  {
+    "id": 404,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Contagem com Inclusão/Restrição de Posição",
+    "question": "De quantos modos podemos formar uma senha de 5 letras distintas (de um alfabeto de 26 letras), se a letra A deve figurar na senha, mas NÃO pode ser a primeira letra?",
+    "options": [
+      "1214400",
+      "1658775",
+      "303600",
+      "1518000"
+    ],
+    "answer": "1214400",
+    "resolution": "A letra A tem 4 opções de posição (2ª, 3ª, 4ª ou 5ª). As outras 4 posições são preenchidas com 4 das 25 letras restantes: 4 × (25 × 24 × 23 × 22) = 4 × 303.600 = 1.214.400 modos."
+  },
+  {
+    "id": 405,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Contagem pelo Complementar com Restrição",
+    "question": "De quantos modos podemos formar uma palavra de 5 letras (podendo repetir letras, de um alfabeto de 26 letras), se a letra A deve aparecer na palavra, mas NÃO pode ser a 1ª letra?",
+    "options": [
+      "1658775",
+      "1214400",
+      "1889568",
+      "1420000"
+    ],
+    "answer": "1658775",
+    "resolution": "Total de palavras sem A na 1ª posição: 25 × 26^4 = 11.424.400. Subtraímos aquelas que não têm nenhuma letra A em posição alguma (25^5 = 9.765.625): 11.424.400 - 9.765.625 = 1.658.775 modos."
+  },
+  {
+    "id": 406,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Permutação em Blocos",
+    "question": "Na fila de descontaminação há 4 engenheiros e 3 biólogos. De quantos modos eles podem ficar em fila se todos os 3 biólogos devem permanecer juntos?",
+    "options": [
+      "144",
+      "720",
+      "5040",
+      "1440"
+    ],
+    "answer": "720",
+    "resolution": "Agrupamos os 3 biólogos num único bloco. Temos 4 engenheiros + 1 bloco = 5 elementos para permutar (5!), e os 3 biólogos permutam entre si (3!): 5! × 3! = 120 × 6 = 720 modos."
+  },
+  {
+    "id": 407,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Combinação com Conflito de Elementos",
+    "question": "Dentre 9 cientistas, 4 serão escolhidos para a missão externa. Sabendo que dois deles, Dr. Silva e Dr. Costa, se recusam a ir juntos na mesma missão, de quantos modos o grupo pode ser formado?",
+    "options": [
+      "126",
+      "105",
+      "91",
+      "84"
+    ],
+    "answer": "105",
+    "resolution": "Total de grupos de 4 sem restrição: C(9,4) = 126. Grupos em que ambos vão juntos (escolhemos os outros 2 dentre os 7 restantes): C(7,2) = 21. Total permitido: 126 - 21 = 105 modos."
+  },
+  {
+    "id": 408,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Permutação Alternada",
+    "question": "Três cabos vermelhos diferentes e 3 cabos azuis diferentes devem ser conectados em 6 entradas em linha, de modo que cabos da mesma cor não fiquem adjacentes (cores alternadas). De quantas maneiras isso pode ser feito?",
+    "options": [
+      "36",
+      "72",
+      "144",
+      "720"
+    ],
+    "answer": "72",
+    "resolution": "As cores podem seguir o padrão V-A-V-A-V-A ou A-V-A-V-A-V (2 padrões). Em cada padrão, permutamos os 3 vermelhos (3! = 6) e os 3 azuis (3! = 6): 2 × 6 × 6 = 72 maneiras."
+  },
+  {
+    "id": 409,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Combinação com Restrição ('Pelo Menos Um')",
+    "question": "Um grupo de 5 especialistas será escolhido entre 6 programadores e 4 criptógrafos. De quantas maneiras podemos formar o grupo de modo que haja PELO MENOS 1 criptógrafo?",
+    "options": [
+      "246",
+      "252",
+      "186",
+      "240"
+    ],
+    "answer": "246",
+    "resolution": "Total de comissões de 5 dentre 10 pessoas: C(10,5) = 252. Comissões sem nenhum criptógrafo (apenas programadores): C(6,5) = 6. Total com pelo menos 1 criptógrafo: 252 - 6 = 246 maneiras."
+  },
+  {
+    "id": 410,
+    "phase": 4,
+    "level": "Avançado",
+    "topic": "Permutação Circular / Mesa de Jogo",
+    "question": "Para desativar o núcleo, 6 operadores precisam sentar-se ao redor de uma mesa circular de comando. Se dois operadores específicos (Ana e Bruno) devem sentar-se obrigatoriamente lado a lado, quantas disposições circulares existem?",
+    "options": [
+      "24",
+      "48",
+      "120",
+      "60"
+    ],
+    "answer": "48",
+    "resolution": "Unimos Ana e Bruno em um bloco (AB), restando 4 operadores + 1 bloco = 5 elementos em círculo: PC_5 = (5 - 1)! = 4! = 24. Multiplicamos por 2! pela troca entre Ana e Bruno: 24 × 2 = 48 disposições."
+  },
+  {
+    "id": 501,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Divisão em Casos no Tabuleiro",
+    "question": "No painel matricial 8×8 (como um tabuleiro de xadrez), de quantos modos podemos posicionar 2 pinos diferentes (Pino Alfa e Pino Beta) em casas NÃO adjacentes (nem na horizontal, vertical ou diagonal)?",
+    "options": [
+      "3612",
+      "1806",
+      "4032",
+      "3420"
+    ],
+    "answer": "3612",
+    "resolution": "Dividimos pela posição do 1º pino: nos 4 cantos (4 × 60 = 240); nas 24 casas laterais da borda (24 × 58 = 1.392); nas 36 casas centrais (36 × 55 = 1.980). Somando: 240 + 1.392 + 1.980 = 3.612 modos."
+  },
+  {
+    "id": 502,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Divisão em Casos com Objetos Idênticos",
+    "question": "No mesmo painel matricial 8×8, de quantos modos podemos posicionar 2 pinos IDÊNTICOS em casas que NÃO sejam adjacentes?",
+    "options": [
+      "1806",
+      "3612",
+      "2016",
+      "1750"
+    ],
+    "answer": "1806",
+    "resolution": "Para pinos distintos há 3.612 modos. Como os dois pinos são idênticos, a ordem entre eles não importa, então dividimos por 2!: 3.612 / 2 = 1.806 modos."
+  },
+  {
+    "id": 503,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Divisão em Casos Mutuamente Exclusivos",
+    "question": "De um baralho de 52 cartões magnéticos, sacam-se sucessivamente e sem reposição 2 cartões. De quantos modos isso pode ser feito se o 1º cartão deve ser de Copas (13 cartas) e o 2º NÃO pode ser um Rei?",
+    "options": [
+      "612",
+      "624",
+      "598",
+      "650"
+    ],
+    "answer": "612",
+    "resolution": "Caso 1: O 1º cartão é o Rei de Copas (1 opção) -> restam 51 cartões, sendo 3 reis, logo 51 - 3 = 48 opções (1 × 48 = 48). Caso 2: O 1º cartão é de Copas mas não é Rei (12 opções) -> restam 51 cartões com 4 reis, logo 51 - 4 = 47 opções (12 × 47 = 564). Total: 48 + 564 = 612 modos."
+  },
+  {
+    "id": 504,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Contagem de Algarismos por Posição",
+    "question": "O computador imprime todos os números inteiros de 1 até 2.222 em sequência. Quantas vezes o algarismo 0 é escrito ao todo nesse relatório?",
+    "options": [
+      "642",
+      "622",
+      "600",
+      "664"
+    ],
+    "answer": "642",
+    "resolution": "Contando por posição decimal: nas unidades há 222 zeros (de 10 a 2220); nas dezenas há 22 blocos de 10 zeros (220 zeros); nas centenas há 2 blocos de 100 zeros em 1000-1099 e 2000-2099 (200 zeros). Total: 222 + 220 + 200 = 642 vezes."
+  },
+  {
+    "id": 505,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Integração de Combinação e Casos de Posição",
+    "question": "Quantos são os números naturais de 7 dígitos nos quais o dígito 4 figura exatamente 3 vezes e o dígito 8 figura exatamente 2 vezes?",
+    "options": [
+      "12960",
+      "13440",
+      "11520",
+      "10800"
+    ],
+    "answer": "12960",
+    "resolution": "Como o 1º dígito não pode ser 0, dividimos em 3 casos para o 1º dígito: (1) Começa com 4: C(6,2)×C(4,2)×8^2 = 5.760; (2) Começa com 8: C(6,3)×C(3,1)×8^2 = 3.840; (3) Começa com outro dígito exceto 0, 4, 8 (7 opções): 7×C(6,3)×C(3,2)×8 = 3.360. Soma: 5.760 + 3.840 + 3.360 = 12.960."
+  },
+  {
+    "id": 506,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Combinação Completa (Soluções Inteiras Positivas)",
+    "question": "Para estabilizar o reator, a soma das cargas inteiras e POSITIVAS (x, y, z >= 1) de 3 bobinas deve obedecer à equação x + y + z = 7. Quantas soluções inteiras e positivas existem?",
+    "options": [
+      "15",
+      "36",
+      "21",
+      "10"
+    ],
+    "answer": "15",
+    "resolution": "Dando 1 unidade para cada variável (x' = x-1, y' = y-1, z' = z-1 >= 0), temos x' + y' + z' = 4. Pela combinação completa (4 bolinhas e 2 divisórias): C(4+3-1, 3-1) = C(6,2) = (6 × 5) / 2 = 15 soluções."
+  },
+  {
+    "id": 507,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Combinação Completa com Folga (Desigualdade)",
+    "question": "O limite térmico exige que as cargas inteiras e NÃO NEGATIVAS (x, y, z >= 0) de 3 válvulas satisfaçam x + y + z <= 6. Quantas soluções inteiras não negativas existem?",
+    "options": [
+      "84",
+      "28",
+      "56",
+      "120"
+    ],
+    "answer": "84",
+    "resolution": "Introduzindo uma variável de folga inteira w >= 0, transformamos em x + y + z + w = 6. Aplicando combinação completa (6 bolinhas e 3 divisórias): C(6+4-1, 4-1) = C(9,3) = (9 × 8 × 7) / (3 × 2 × 1) = 84 soluções."
+  },
+  {
+    "id": 508,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Divisores e Quadrados Perfeitos (Problema dos Armários)",
+    "question": "No corredor há 900 travas numeradas de 1 a 900, todas fechadas. 900 drones (1 a 900) passam pelo corredor: o drone k inverte o estado de todas as travas múltiplas de k. Ao final, quantas travas ficarão abertas?",
+    "options": [
+      "30",
+      "450",
+      "90",
+      "29"
+    ],
+    "answer": "30",
+    "resolution": "Uma trava n muda de estado para cada divisor positivo que possui. Ficarão abertas apenas as que têm um número ímpar de divisores, ou seja, os quadrados perfeitos. Como √900 = 30, existem 30 quadrados perfeitos (1², 2², ..., 30²)."
+  },
+  {
+    "id": 509,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Permutação Caótica (Desarranjo)",
+    "question": "Quatro chaves codificadas (A, B, C, D) devem ser inseridas em 4 fechaduras (A, B, C, D). Para acionar o modo de teste de falha, NENHUMA chave pode ser colocada na sua própria fechadura correspondente. De quantos modos isso pode ocorrer?",
+    "options": [
+      "9",
+      "11",
+      "8",
+      "12"
+    ],
+    "answer": "9",
+    "resolution": "Trata-se do desarranjo (permutação caótica) de 4 elementos: D_4 = 4! × (1/2! - 1/3! + 1/4!) = 24 × (1/2 - 1/6 + 1/24) = 12 - 4 + 1 = 9 modos."
+  },
+  {
+    "id": 510,
+    "phase": 5,
+    "level": "Difícil",
+    "topic": "Partição em Grupos e Simetria",
+    "question": "Oito baterias distintas devem ser divididas em 4 pares para alimentar 4 geradores idênticos (a ordem dos geradores não importa e a ordem dentro do par também não). De quantos modos essa divisão pode ser feita?",
+    "options": [
+      "105",
+      "2520",
+      "420",
+      "70"
+    ],
+    "answer": "105",
+    "resolution": "Escolhemos os 4 pares sucessivamente e dividimos por 4! pois os 4 grupos são indistinguíveis: [C(8,2) × C(6,2) × C(4,2) × C(2,2)] / 4! = (28 × 15 × 6 × 1) / 24 = 2.520 / 24 = 105 modos."
+  }
+];
+
+const PHASE_CONFIG = {
+    1: { name: "Fase 1 — Porta de Entrada Blindada", level: "Fácil", req: 1, desc: "Nível Fácil • Resolva o enigma de contagem direta para abrir a porta externa." },
+    2: { name: "Fase 2 — Arquivo Criptografado", level: "Básico", req: 2, desc: "Nível Básico • Decifre os códigos usando Permutação Simples e Arranjo Simples." },
+    3: { name: "Fase 3 — Laboratório Bioquímico", level: "Intermediário", req: 2, desc: "Nível Intermediário • Combine reagentes e anagramas com repetição sem errar a fórmula." },
+    4: { name: "Fase 4 — Sala dos Servidores", level: "Avançado", req: 3, desc: "Nível Avançado • Contorne restrições de elementos juntos, separados e posições proibidas." },
+    5: { name: "Fase 5 — Núcleo do Reator Quântico", level: "Difícil", req: 4, desc: "Nível Difícil • Domine casos mutuamente exclusivos e soluções inteiras para escapar!" }
+};
+
+let currentPhase = 1;
+let phaseHits = 0;
+let totalHits = 0;
+let lives = 5;
+let timeLeft = 900; // 15 minutos
+let timerInterval = null;
+let usedQuestionIds = new Set();
+let currentQuestion = null;
+let audioEnabled = true;
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+function playSound(type) {
+    if (!audioEnabled) return;
+    try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        if (type === 'correct') {
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.1);
+            osc.frequency.setValueAtTime(783.99, now + 0.2);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } else if (type === 'wrong') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.setValueAtTime(160, now + 0.15);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } else if (type === 'phaseUp') {
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(554.37, now + 0.12);
+            osc.frequency.setValueAtTime(659.25, now + 0.24);
+            osc.frequency.setValueAtTime(880, now + 0.36);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            osc.start(now);
+            osc.stop(now + 0.6);
+        }
+    } catch (e) {}
+}
+
+function toggleAudio() {
+    audioEnabled = !audioEnabled;
+    document.getElementById('audio-toggle').textContent = audioEnabled ? '🔊 Som: ON' : '🔇 Som: OFF';
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function startGame() {
+    currentPhase = 1;
+    phaseHits = 0;
+    totalHits = 0;
+    lives = 5;
+    timeLeft = 900;
+    usedQuestionIds.clear();
+
+    document.getElementById('hud').style.display = 'flex';
+    updateHUD();
+    showScreen('screen-game');
+    loadPhaseUI();
+    loadRandomQuestion();
+
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        updateHUD();
+        if (timeLeft <= 0) {
+            endGame(false, "O tempo de 15 minutos esgotou e o Bunker foi selado definitivamente!");
+        }
+    }, 1000);
+}
+
+function updateHUD() {
+    const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const secs = String(timeLeft % 60).padStart(2, '0');
+    document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+    document.getElementById('lives-display').textContent = lives;
+    document.getElementById('total-hits-display').textContent = totalHits;
+    document.getElementById('phase-hits').textContent = phaseHits;
+    document.getElementById('phase-req').textContent = PHASE_CONFIG[currentPhase].req;
+
+    for (let i = 1; i <= 5; i++) {
+        const bar = document.getElementById(`bar-${i}`);
+        bar.className = 'phase-step';
+        if (i < currentPhase) bar.classList.add('done');
+        else if (i === currentPhase) bar.classList.add('current');
+    }
+}
+
+function loadPhaseUI() {
+    const cfg = PHASE_CONFIG[currentPhase];
+    document.getElementById('room-title').textContent = cfg.name;
+    document.getElementById('room-desc').textContent = cfg.desc;
+    updateHUD();
+}
+
+function shuffleArray(arr) {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+function loadRandomQuestion() {
+    document.getElementById('feedback-box').className = 'feedback-box';
+    let pool = QUESTIONS_DB.filter(q => q.phase === currentPhase && !usedQuestionIds.has(q.id));
+    if (pool.length === 0) {
+        // Reset phase pool if all 10 questions were exhausted
+        QUESTIONS_DB.filter(q => q.phase === currentPhase).forEach(q => usedQuestionIds.delete(q.id));
+        pool = QUESTIONS_DB.filter(q => q.phase === currentPhase);
+    }
+    currentQuestion = pool[Math.floor(Math.random() * pool.length)];
+    usedQuestionIds.add(currentQuestion.id);
+
+    document.getElementById('q-topic').textContent = `${currentQuestion.level} • ${currentQuestion.topic}`;
+    document.getElementById('q-text').textContent = currentQuestion.question;
+
+    const optionsContainer = document.getElementById('options-container');
+    optionsContainer.innerHTML = '';
+    const shuffledOptions = shuffleArray(currentQuestion.options);
+    const letters = ['A', 'B', 'C', 'D'];
+
+    shuffledOptions.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<span style="color: var(--accent-cyan);">[${letters[idx]}]</span> <span>${opt}</span>`;
+        btn.onclick = () => selectOption(btn, opt);
+        optionsContainer.appendChild(btn);
+    });
+}
+
+function selectOption(selectedBtn, chosenValue) {
+    const buttons = document.querySelectorAll('.option-btn');
+    buttons.forEach(b => b.disabled = true);
+
+    const fbBox = document.getElementById('feedback-box');
+    const fbTitle = document.getElementById('feedback-title');
+    const fbRes = document.getElementById('feedback-res');
+
+    if (chosenValue === currentQuestion.answer) {
+        selectedBtn.classList.add('correct');
+        playSound('correct');
+        phaseHits++;
+        totalHits++;
+        updateHUD();
+
+        fbBox.className = 'feedback-box show ok';
+        fbTitle.textContent = '✅ Resposta Correta! Trava parcialmente liberada.';
+        fbRes.textContent = `Resolução: ${currentQuestion.resolution}`;
+    } else {
+        selectedBtn.classList.add('wrong');
+        buttons.forEach(b => {
+            if (b.textContent.includes(currentQuestion.answer)) b.classList.add('correct');
+        });
+        playSound('wrong');
+        lives--;
+        updateHUD();
+
+        fbBox.className = 'feedback-box show err';
+        fbTitle.textContent = '❌ Código Incorreto! Você não perdeu os acertos da fase, mas perdeu 1 vida.';
+        fbRes.textContent = `Resposta correta: ${currentQuestion.answer}. Resolução: ${currentQuestion.resolution}`;
+    }
+}
+
+function nextStep() {
+    if (lives <= 0) {
+        endGame(false, "Você cometeu 5 erros e o sistema bloqueou todos os terminais do Bunker!");
+        return;
+    }
+
+    if (phaseHits >= PHASE_CONFIG[currentPhase].req) {
+        if (currentPhase === 5) {
+            endGame(true);
+            return;
+        } else {
+            currentPhase++;
+            phaseHits = 0;
+            playSound('phaseUp');
+            loadPhaseUI();
+        }
+    }
+    loadRandomQuestion();
+}
+
+function endGame(victory, reason = "") {
+    if (timerInterval) clearInterval(timerInterval);
+    document.getElementById('hud').style.display = 'none';
+
+    if (victory) {
+        playSound('phaseUp');
+        const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+        const secs = String(timeLeft % 60).padStart(2, '0');
+        document.getElementById('win-time').textContent = `${mins}:${secs}`;
+        document.getElementById('win-lives').textContent = lives;
+        showScreen('screen-win');
+    } else {
+        document.getElementById('lose-reason').textContent = reason;
+        document.getElementById('lose-phase').textContent = currentPhase;
+        document.getElementById('lose-hits').textContent = totalHits;
+        showScreen('screen-lose');
+    }
+}
+</script>
+</body>
+</html>
